@@ -14,6 +14,7 @@ import { MONGODB_URI, SESSION_SECRET } from "./util/secrets";
 const MongoStore = mongo(session);
 
 // Controllers (route handlers)
+import * as assetController from "./controllers/asset";
 import * as homeController from "./controllers/home";
 import * as userController from "./controllers/user";
 import * as apiController from "./controllers/api";
@@ -84,18 +85,26 @@ app.use(
 /**
  * Primary app routes.
  */
-app.get("/", homeController.index);
+
+app.get("/", homeController.index); //TODO: need to pull config to know which Categories to show in NavBar // TODO: Add authentication and show home page for this application.  show homePage actions or document
+
 app.get("/login", userController.getLogin);
 app.post("/login", userController.postLogin);
+
 app.get("/logout", userController.logout);
+
 app.get("/forgot", userController.getForgot);
 app.post("/forgot", userController.postForgot);
+
 app.get("/reset/:token", userController.getReset);
 app.post("/reset/:token", userController.postReset);
+
 app.get("/signup", userController.getSignup);
 app.post("/signup", userController.postSignup);
+
 app.get("/contact", contactController.getContact);
 app.post("/contact", contactController.postContact);
+
 app.get("/account", passportConfig.isAuthenticated, userController.getAccount);
 app.post("/account/profile", passportConfig.isAuthenticated, userController.postUpdateProfile);
 app.post("/account/password", passportConfig.isAuthenticated, userController.postUpdatePassword);
@@ -103,17 +112,33 @@ app.post("/account/delete", passportConfig.isAuthenticated, userController.postD
 app.get("/account/unlink/:provider", passportConfig.isAuthenticated, userController.getOauthUnlink);
 
 /**
+ * Asset Routes
+ */
+
+// GET all assets
+app.get("api/v1/assets/", assetController.index); 
+// GET a single asset by id
+app.get("api/v1/assets/:id", function (req, res) {
+    res.json({
+        assetId: req.params.id,
+        route: req.path
+    });
+});
+
+/** Admin api routes */
+app.get("api/v1/admin/assets/", function (req, res) {
+    res.json({
+        assetId: req.params.id,
+        route: req.path
+    });
+});
+
+
+/**
  * API examples routes.
  */
 app.get("/api", apiController.getApi);
 app.get("/api/facebook", passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getFacebook);
 
-/**
- * OAuth authentication routes. (Sign in)
- */
-app.get("/auth/facebook", passport.authenticate("facebook", { scope: ["email", "public_profile"] }));
-app.get("/auth/facebook/callback", passport.authenticate("facebook", { failureRedirect: "/login" }), (req, res) => {
-    res.redirect(req.session.returnTo || "/");
-});
 
 export default app;
