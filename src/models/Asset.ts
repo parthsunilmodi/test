@@ -1,22 +1,20 @@
 import mongoose, { mongo } from "mongoose";
 import { CustomerSchema, CustomerAssetDocument } from "../customer/Asset";
 
-enum AssetType {
-    Project, 
-    Equipment,
-    Document, 
-}
 export enum AssetStatus {
-    CheckedIn = 1,
-    CheckedOut = 0,
-    Unknown = -1
+    Setup = "Setup",
+    CheckedIn = "CheckedIn",
+    CheckedOut = "CheckedOut",
+    Error = "Err",
+    Unknown = "Unknown"
 
 }
 
 export type AssetDocument = mongoose.Document & CustomerAssetDocument &  {
     _id: string;
     customerId: string;
-    assetType: AssetType;
+    assetStatus: string;
+    assetType: string;
     checkedIn: Date;
     checkedOut: Date;
     data: object;
@@ -26,29 +24,49 @@ export type AssetDocument = mongoose.Document & CustomerAssetDocument &  {
 type checkInAssetFunction = (cb: (err: any, isCheckedIn: any) => {}) => void
 type checkOutAssetFunction = (cb: (err: any, isCheckedOut: any) => {}) => void
 
-const AssetSchema = new mongoose.Schema({
-    _id: mongoose.Schema.Types.ObjectId,
-    customerId: String,
-    assetType: String,
-    assetStatus: { type: AssetStatus, default: AssetStatus.Unknown },
-    checkInDate: Date,
-    checkOutDate: Date,
+const AssetSchemaBase = new mongoose.Schema({
+    customerId:  {
+        type: String,
+        required: true,
+    },
+    assetType: { type: String, required: true, enum: ["Part", "Asset", "Document"] } ,
+    assetStatus: { 
+        type: String, 
+        default: AssetStatus.Unknown 
+    },
+    checkInDate: {
+        type: Date, 
+        required: false, // auto added when checkInMethod is called
+    },
+    checkOutDate: {
+        type: Date, 
+        required: false, // auto added when checkInMethod is called
+    },
     version: Number, // auto increment? or set during write/update
-    __tags: Array,
-    __links: Array,
+    tags: Array,
+    links: Array,
 
-    ...CustomerSchema
+    data: CustomerSchema,
 
-}, { timestamps: true }); 
-
+}, { strict: true, versionKey: true, timestamps: true }); 
 
 
 // Schema for Mongodb. inherits from base schema and all customer data 
 // is stored under data object as per the required Customer Schema 
 const assetSchema = new mongoose.Schema({
-    ...AssetSchema.obj,
-    data: { type: CustomerSchema, default: {} }
+    ...AssetSchemaBase.obj,
 });
+
+assetSchema.addListener("onAssetChanged", (obj, changes) => {
+    if(obj.isValid()) {
+        // if the object hasn't been deleted
+    }
+    // do something here (like notify redis or write mongodb log or increment version)
+});
+
+/**  add plugin that converts mongoose to json */
+// assetSchema.plugin(toJSON);
+// assetSchema.plugin(paginate);
 
 // methods on the asset document
 // checkIn, checkOut, create, update, delete
@@ -60,11 +78,17 @@ const assetSchema = new mongoose.Schema({
 /** FindById */ // exists within mongodb 
 /** ListAll(Paginated) */ // exists within mongodb
 
-const checkInAsset: checkInAssetFunction = function (cb) {
+/**
+ * 
+ * @param cb callback 
+ * @returns Promise<Boolean> true or false based on the success of the operation
+ */
+const checkInAsset: checkInAssetFunction = function (cb: (err: Error, asset: any, isCheckedOut: boolean) => {}): void {
     
     /**
      * Validation before check-in?
      */
+
     try {
 
         this.assetStatus = AssetStatus.CheckedIn;
@@ -72,27 +96,33 @@ const checkInAsset: checkInAssetFunction = function (cb) {
 
     } catch (err) {
         this.checkedIn = false;
-        cb(err, false);
+        cb(err, null, false);
     } 
     
-    cb(null, true);
+    if(cb) cb(null, this, true);
 };
 
-const checkOutAsset: checkOutAssetFunction = function (cb) {
+/**
+ * 
+ * @param cb callback 
+ * @returns Promise<Boolean> true or false based on the success of the operation
+ */
+const checkOutAsset: checkOutAssetFunction = function (cb: (err: Error, asset: any, isCheckedOut: boolean) => {}): void {
     
     /**
      * Validation before check-out?
      */
+
     try {
         
         this.assetStatus = AssetStatus.CheckedOut;
         this.checkOutDate = Date.now();
 
     } catch (err) {
-        cb(err, false);
+        cb(err, null, false);
     } 
     
-    cb(null, true);
+    if(cb) cb(null, this, true);
 };
 
 assetSchema.methods.checkIn = checkInAsset;

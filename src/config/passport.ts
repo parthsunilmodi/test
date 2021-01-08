@@ -1,6 +1,9 @@
 import passport from "passport";
 import passportLocal from "passport-local";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import passportFacebook from "passport-facebook";
+import * as secrets from "../util/secrets";
+
 import _ from "lodash";
 
 // import { User, UserType } from '../models/User';
@@ -10,7 +13,7 @@ import { Request, Response, NextFunction } from "express";
 const LocalStrategy = passportLocal.Strategy;
 const FacebookStrategy = passportFacebook.Strategy;
 
-passport.serializeUser<any, any>((user, done) => {
+passport.serializeUser<any, any>((user, done: any) => {
     done(undefined, user.id);
 });
 
@@ -40,6 +43,19 @@ passport.use(new LocalStrategy({ usernameField: "email" }, (email, password, don
     });
 }));
 
+
+/**
+ * Sign in using JWT Token 
+ * For API access only
+ */
+passport.use("jwt", new JwtStrategy({ secretOrKey: secrets.JWT_SECRET, jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken() },  
+    async (token, done) => {
+        try {
+            return done(null, token.user);
+        } catch (err) {
+            done (err);
+        }
+}));
 
 /**
  * OAuth Strategy Overview
@@ -126,6 +142,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
     }
     res.redirect("/login");
 };
+
 
 /**
  * Authorization Required middleware.

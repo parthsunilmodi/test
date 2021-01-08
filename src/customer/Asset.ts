@@ -8,7 +8,11 @@ export type CustomerAssetDocument =  {
 };
 
 export const CustomerSchema = new mongoose.Schema({
-    data: Map
+    data: {
+        type: {},
+        required: false,
+        default: { customerFieldExample: "n/a" }
+    }
 }); 
 
 

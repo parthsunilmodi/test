@@ -2,6 +2,8 @@ import async from "async";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import passport from "passport";
+import * as jwt from "jsonwebtoken";
+import * as secrets from "../util/secrets";
 import { User, UserDocument, AuthToken } from "../models/User";
 import { Request, Response, NextFunction } from "express";
 import { IVerifyOptions } from "passport-local";
@@ -47,8 +49,43 @@ export const postLogin = async (req: Request, res: Response, next: NextFunction)
         }
         req.logIn(user, (err) => {
             if (err) { return next(err); }
+
             req.flash("success", { msg: "Success! You are logged in." });
             res.redirect(req.session.returnTo || "/");
+        });
+    })(req, res, next);
+};
+
+/**
+ * Sign in to the api using email and password.
+ * @route POST /login
+ */
+export const postLoginApi = async (req: Request, res: Response, next: NextFunction) => {
+    await check("email", "Email is not valid").isEmail().run(req);
+    await check("password", "Password cannot be blank").isLength({min: 1}).run(req);
+    // eslint-disable-next-line @typescript-eslint/camelcase
+    await sanitize("email").normalizeEmail({ gmail_remove_dots: false }).run(req);
+
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+        req.flash("errors", errors.array());
+        return res.redirect("/login");
+    }
+
+    passport.authenticate("jwt", (err: Error, user: UserDocument, info: IVerifyOptions) => {
+        if (err) { return next(err); }
+        if (!user) {
+            req.flash("errors", {msg: info.message});
+            return res.redirect("/login");
+        }
+        req.logIn(user, (err) => {
+            if (err) { return next(err); }
+            const body = { _id: user._id, email: user.email };
+            const token = jwt.sign({ user: body }, secrets.JWT_SECRET);
+
+            return res.json({ token });
+
         });
     })(req, res, next);
 };
@@ -110,7 +147,10 @@ export const postSignup = async (req: Request, res: Response, next: NextFunction
                 if (err) {
                     return next(err);
                 }
-                res.redirect("/");
+                return res.json({
+                    message: "Signup successful!",
+                    user: user.email
+                });
             });
         });
     });

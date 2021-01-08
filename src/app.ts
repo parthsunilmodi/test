@@ -14,10 +14,9 @@ import { MONGODB_URI, SESSION_SECRET } from "./util/secrets";
 const MongoStore = mongo(session);
 
 // Controllers (route handlers)
-import * as assetController from "./controllers/asset";
-import * as homeController from "./controllers/home";
+import * as appController from "./controllers/app";
 import * as userController from "./controllers/user";
-import * as apiController from "./controllers/api";
+import * as apiController from "./controllers/asset";
 import * as contactController from "./controllers/contact";
 
 
@@ -82,11 +81,14 @@ app.use(
     express.static(path.join(__dirname, "public"), { maxAge: 31557600000 })
 );
 
+
+
 /**
- * Primary app routes.
+ * Primary Server-Side App Routes.
+ * This is for the server generated views
  */
 
-app.get("/", homeController.index); //TODO: need to pull config to know which Categories to show in NavBar // TODO: Add authentication and show home page for this application.  show homePage actions or document
+app.get("/", appController.index); //TODO: need to pull config to know which Categories to show in NavBar // TODO: Add authentication and show home page for this application.  show homePage actions or document
 
 app.get("/login", userController.getLogin);
 app.post("/login", userController.postLogin);
@@ -102,8 +104,9 @@ app.post("/reset/:token", userController.postReset);
 app.get("/signup", userController.getSignup);
 app.post("/signup", userController.postSignup);
 
-app.get("/contact", contactController.getContact);
-app.post("/contact", contactController.postContact);
+
+// ADMIN dashboard
+app.get("/dashboard/admin", appController.adminDashboard);
 
 app.get("/account", passportConfig.isAuthenticated, userController.getAccount);
 app.post("/account/profile", passportConfig.isAuthenticated, userController.postUpdateProfile);
@@ -112,21 +115,19 @@ app.post("/account/delete", passportConfig.isAuthenticated, userController.postD
 app.get("/account/unlink/:provider", passportConfig.isAuthenticated, userController.getOauthUnlink);
 
 /**
- * Asset Routes
+ * API Routes
  */
+app.post("/api/v1/login", userController.postLogin);
 
 // GET all assets
-app.get("api/v1/assets/", assetController.index); 
+app.get("/api/v1/assets/", apiController.getAll); 
 // GET a single asset by id
-app.get("api/v1/assets/:id", function (req, res) {
-    res.json({
-        assetId: req.params.id,
-        route: req.path
-    });
-});
+// passport.authenticate('jwt', { session: false })
+app.get("/api/v1/assets/:id", apiController.getById);
+app.post("/api/v1/assets/", apiController.postAsset);
 
 /** Admin api routes */
-app.get("api/v1/admin/assets/", function (req, res) {
+app.get("/api/v1/assets/admin/getAdmin", function (req, res) {
     res.json({
         assetId: req.params.id,
         route: req.path
