@@ -1,8 +1,11 @@
+import sgMail from "@sendgrid/mail";
 import { NextFunction, Request, Response } from "express";
 import { param, validationResult } from "express-validator";
 import * as httpStatusCodes from "http-status";
 import { UserApp, UserAppDocument } from "../models/UserApps";
-import { UserDocument } from "../models/User";
+import { User, UserDocument } from "../models/User";
+
+sgMail.setApiKey(process.env.SENDGRID_PASSWORD);
 
 /**
  * Get all the Apps.
@@ -15,7 +18,6 @@ export const getAllUserApps = (req: Request, res: Response, next: NextFunction) 
     .then((apps: UserAppDocument[]) => {
     return res.json({ apps });
   }).catch((err: any) => {
-    console.log('\n\n\n err : ', err);
     return res.status(httpStatusCodes.NOT_FOUND).json({
       msg: "No App exists",
       error: err
@@ -171,12 +173,103 @@ export const deleteApp = async (req: Request, res: Response, next: NextFunction)
 };
 
 /**
- * Admin Dashboard page.
- * @route GET /
+ * Adds the user to the Users Array of the App
+ * @route GET /userApps/:userAppId/addUser
  */
-export const adminDashboard = (req: Request, res: Response) => {
-  // TBD: change to admin dashboard page
-  res.render("home", {
-    title: "Dashboard"
-  });
+export const addUserToApp = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    await param("userAppId", "Invalid or missing id").exists().isMongoId().run(req);
+
+    UserApp.findById(req.params.userAppId, (err: any, userApp: UserAppDocument) => {
+      if (err) {
+        return next(err);
+      }
+
+      const isExists = userApp.users.find((user) => {
+        // @ts-ignore
+        return user.userId.equals(req.body.userEmail);
+      });
+
+      if (isExists) {
+        return res.status(400).send({ status: false, result: "User already added to this App" });
+      } else {
+        const randomPassword = Math.random().toString(36).slice(-8);
+        const user = new User({
+          email: req.body.userEmail,
+          password: randomPassword,
+          isVerified: false,
+          profile: {
+            name: "AppUser",
+          }
+        });
+        User.findOne({ emailId: req.body.userEmail }).then((userResponse) => {
+          if (userResponse) {
+            return res.status(400).send({ message: "User with same emailAddress is already registered.", status: false });
+          }
+          user.save().then((newUser) => {
+            userApp.users.push({ userId: newUser.id });
+            userApp.save((err: any) => {
+              if (err) {
+                return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+                  msg: "Validation failed",
+                  error: err
+                });
+              }
+              const mailOptions = {
+                to: req.body.userEmail,
+                from: req.body.adminEmail,
+                subject: "User access for the App",
+                text: "You have been given the access for the App. Please visit the below URL and access the app.",
+                html: "<h1><a href=`http://localhost:3000/`" + req.params.userAppId+ "/" + newUser.id + "`/pick-list`>Go to the App</a></h1>",
+              };
+              (async () => {
+                try {
+                  await sgMail.send(mailOptions);
+                  return res.json({ status: true, result: "data updated" });
+                } catch (error) {
+                  console.error(error);
+                  if (error.response) {
+                    console.error(error.response.body);
+                    return res.send(error.response.body);
+                  }
+                  return res.send(err.message);
+                }
+              })();
+            });
+          }).catch((err) => res.status(500).send({ message: err.message, status: false }));
+        }).catch((err) => {
+          res.status(500).send({ message: err, status: false });
+        });
+      }
+    });
+  } catch (err) {
+    return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+      msg: "Validation failed",
+      error: err
+    });
+  }
+};
+
+
+/**
+ * Gets all the apps that user is assigned to
+ * @route GET /userApps/:userId
+ */
+export const getUserAssignedApps = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    await param("userId", "Invalid or missing id").exists().isMongoId().run(req);
+
+    UserApp.find({ "users.userId": req.params.userId }).populate("appId").then((userApps) => {
+      res.send({ status: true, message: "Data fetched successfully", data: userApps });
+    }).catch((err) => {
+      return res.status(500).send({ status: false, message: err.message });
+    });
+  } catch (err) {
+    return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+      msg: "Validation failed",
+      error: err
+    });
+  }
 };

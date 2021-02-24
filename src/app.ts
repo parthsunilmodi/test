@@ -92,6 +92,9 @@ app.post("/api/v1/signup", userController.postSignup);
 /**
  * API Routes
  */
+// user routes
+app.get("/api/v1/user/:id", userController.getUserById);
+app.put("/api/v1/set-password/:id", userController.setUserPassword);
 
 // app routes
 app.get("/api/v1/apps", storedAppController.getAllStoredApps);
@@ -103,7 +106,9 @@ app.delete("/api/v1/apps/:id", storedAppController.deleteApp);
 // store app
 app.get("/api/v1/userApps", userAppController.getAllUserApps);
 app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
+app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
 app.post("/api/v1/userApps", userAppController.addApp);
+app.post("/api/v1/userApps/:userAppId/addUser", userAppController.addUserToApp);
 app.put("/api/v1/userApps/:id", userAppController.updateApp);
 app.delete("/api/v1/userApps/:appId", userAppController.deleteApp);
 

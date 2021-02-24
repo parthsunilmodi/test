@@ -23,10 +23,11 @@ const userAppSchema = new mongoose.Schema({
     expiresIn: { type: Date, required: true, default: moment().add(14, "days").toISOString() },
     users: [
       {
-          id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          type: { type: ["Admin", "User"] },
+          userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          type: { type: String, enum: ["Admin", "User"], required: true, default: "User" },
+          registeredOn: { type: Date, required: true, default: moment().add(14, "days").toISOString() }
       }
-  ],
+    ],
     dashboard: String,
     cost: String,
     integrations: String,

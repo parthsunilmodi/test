@@ -18,7 +18,7 @@ export type UserDocument = mongoose.Document & {
         website: string;
         picture: string;
     };
-
+    isVerified: boolean;
     comparePassword: comparePasswordFunction;
     gravatar: (size: number) => string;
 };
@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema({
         picture: String
     },
     userType: { type: String, },
+    isVerified: { type: Boolean, required: false, default: true },
 }, { timestamps: true });
 
 /**

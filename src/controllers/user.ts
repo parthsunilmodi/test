@@ -1,16 +1,18 @@
+import mongoose, { NativeError } from "mongoose";
 import async from "async";
+import { Request, Response, NextFunction } from "express";
+import { IVerifyOptions } from "passport-local";
+import { check, param, sanitize, validationResult } from "express-validator";
+import * as httpStatusCodes from "http-status";
+import bcrypt from "bcrypt";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import passport from "passport";
 import * as jwt from "jsonwebtoken";
 import * as secrets from "../util/secrets";
 import { User, UserDocument, AuthToken } from "../models/User";
-import { Request, Response, NextFunction } from "express";
-import { IVerifyOptions } from "passport-local";
-import { NativeError } from "mongoose";
-import { check, sanitize, validationResult } from "express-validator";
 import "../config/passport";
-import * as httpStatusCodes from "http-status";
+import has = Reflect.has;
 
 /**
  * Login page.
@@ -468,3 +470,46 @@ export const postForgot = async (req: Request, res: Response, next: NextFunction
         res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).send({message: err.toString()});
     });
 };
+
+/**
+ * Get user details from the given Id.
+ * @route GET /user
+ */
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
+    await param("id", "Invalid or missing id").exists().isMongoId().run(req);
+    User.findOne({ _id: req.params.id }).then((userData) => {
+        if (!userData) {
+            res.status(400).send({ message: "No data found with the given Id", status: true });
+        }
+        res.send({ message: "Data fetched successfully", status: true, data: userData });
+    }).catch((err) => {
+        console.error(err);
+        res.status(500).send({ status: false, message: err.message });
+    });
+};
+
+/**
+ * Set the password for the first time.
+ * @route POST /set-password/:id
+ */
+export const setUserPassword = async (req: Request, res: Response, next: NextFunction) => {
+    await param("id", "Invalid or missing id").exists().isMongoId().run(req);
+    bcrypt.genSalt(10, (err, salt) => {
+        if (err) { return next(err); }
+        bcrypt.hash(req.body.password, salt, (err: mongoose.Error, hash) => {
+            if (err) {
+                return res.status(500).send({ status: false, message: err.message });
+            }
+            User.findOneAndUpdate({ _id: req.params.id }, { password: hash, isVerified: true }).then((userData) => {
+                if (!userData) {
+                    res.status(400).send({ message: "No data found with the given Id", status: true });
+                }
+                res.send({ message: "Data updated successfully", status: true, data: userData });
+            }).catch((err) => {
+                console.error(err);
+                res.status(500).send({ status: false, message: err.message });
+            });
+        });
+    });
+};
+
