@@ -105,6 +105,7 @@ app.delete("/api/v1/apps/:id", storedAppController.deleteApp);
 
 // store app
 app.get("/api/v1/userApps", userAppController.getAllUserApps);
+app.get("/api/v1/users/:appId", userAppController.getUserByAppId);
 app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
 app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
 app.post("/api/v1/userApps", userAppController.addApp);

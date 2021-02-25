@@ -273,3 +273,26 @@ export const getUserAssignedApps = async (req: Request, res: Response, next: Nex
     });
   }
 };
+
+/**
+ * Get all the users added to the particular app
+ * @route GET /userApps/users/:appId
+ */
+export const getUserByAppId = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    await param("appId", "Invalid or missing id").exists().isMongoId().run(req);
+
+    UserApp.find({ "_id": req.params.appId }).populate("users.userId").then((userApps) => {
+      debugger;
+      res.send({ status: true, message: "Data fetched successfully", data: userApps });
+    }).catch((err) => {
+      return res.status(500).send({ status: false, message: err.message });
+    });
+  } catch (err) {
+    return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+      msg: "Validation failed",
+      error: err
+    });
+  }
+};
