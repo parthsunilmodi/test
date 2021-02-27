@@ -221,7 +221,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
                 from: req.body.adminEmail,
                 subject: "User access for the App",
                 text: "You have been given the access for the App. Please visit the below URL and access the app.",
-                html: "<h1><a href=`http://localhost:3000/`" + req.params.userAppId+ "/" + newUser.id + "`/pick-list`>Go to the App</a></h1>",
+                html: "<h1><a href=https://mss-95.loca.lt/" + req.params.userAppId+ "/" + newUser.id + "/pick-list>Go to the App</a></h1>",
               };
               (async () => {
                 try {

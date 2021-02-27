@@ -11,6 +11,9 @@ export type StoredAppDocument = mongoose.Document & {
     useCase: [object];
     cost: [object];
     review: [object];
+    publishedUrls: string;
+    thumbnailUrl: string;
+    pictures: [string];
 };
 
 const appSchema = new mongoose.Schema({
@@ -27,6 +30,8 @@ const appSchema = new mongoose.Schema({
     cost: {type: [Object],},
     review: {type: [Object],},
     publishedUrls: { type: String }, // https://eduro.apps.trackitt.io/${appName}
+    thumbnailUrl: { type: String }, // image to display in list view
+    pictures: { type: [String] }, // set of images to display in detail view
 
 }, {strict: true, timestamps: true});
 
