@@ -221,7 +221,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
                 from: req.body.adminEmail,
                 subject: "User access for the App",
                 text: "You have been given the access for the App. Please visit the below URL and access the app.",
-                html: "<h1><a href=`http://localhost:3000/`" + req.params.userAppId+ "/" + newUser.id + "`/pick-list`>Go to the App</a></h1>",
+                html: `<h1><a href=${process.env.FRONTEND_APP_PORTAL_URL}` + req.params.userAppId + "/" + newUser.id + "/pick-list>Go to the App</a></h1>",
               };
               (async () => {
                 try {
@@ -262,6 +262,29 @@ export const getUserAssignedApps = async (req: Request, res: Response, next: Nex
     await param("userId", "Invalid or missing id").exists().isMongoId().run(req);
 
     UserApp.find({ "users.userId": req.params.userId }).populate("appId").then((userApps) => {
+      res.send({ status: true, message: "Data fetched successfully", data: userApps });
+    }).catch((err) => {
+      return res.status(500).send({ status: false, message: err.message });
+    });
+  } catch (err) {
+    return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+      msg: "Validation failed",
+      error: err
+    });
+  }
+};
+
+/**
+ * Get all the users added to the particular app
+ * @route GET /userApps/users/:appId
+ */
+export const getUserByAppId = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+
+    await param("appId", "Invalid or missing id").exists().isMongoId().run(req);
+
+    UserApp.find({ "_id": req.params.appId }).populate("users.userId").then((userApps) => {
+      debugger;
       res.send({ status: true, message: "Data fetched successfully", data: userApps });
     }).catch((err) => {
       return res.status(500).send({ status: false, message: err.message });

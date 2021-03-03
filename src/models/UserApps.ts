@@ -13,6 +13,8 @@ export type UserAppDocument = mongoose.Document & {
     cost: string;
     integrations: string;
     appData: string;
+    apiRoot: string; // url where we'll store our data
+    apiKey: string; // will store the url where our actual app is hosted
 };
 
 const userAppSchema = new mongoose.Schema({

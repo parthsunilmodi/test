@@ -3,10 +3,7 @@ import cors from "cors";
 import compression from "compression";  // compresses requests
 import session from "express-session";
 import bodyParser from "body-parser";
-// import lusca from "lusca";
 import mongo from "connect-mongo";
-import flash from "express-flash";
-import path from "path";
 import mongoose from "mongoose";
 import passport from "passport";
 import bluebird from "bluebird";
@@ -18,10 +15,6 @@ const MongoStore = mongo(session);
 import * as userAppController from "./controllers/userApps";
 import * as storedAppController from "./controllers/storedApps";
 import * as userController from "./controllers/user";
-
-
-// API keys and Passport configuration
-import * as passportConfig from "./config/passport";
 
 // Create Express server
 const app = express();
@@ -61,34 +54,31 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(flash());
-app.use((req, res, next) => {
-    res.locals.user = req.user;
-    next();
-});
-app.use((req, res, next) => {
-    // After successful login, redirect back to the intended page
-    if (!req.user &&
-        req.path !== "/login" &&
-        req.path !== "/signup" &&
-        !req.path.match(/^\/auth/) &&
-        !req.path.match(/\./)) {
-        (req.session as any).returnTo = req.path;
-    } else if (req.user &&
-        req.path == "/account") {
-        (req.session as any).returnTo = req.path;
-    }
-    next();
-});
+// app.use((req, res, next) => {
+//     res.locals.user = req.user;
+//     next();
+// });
+// app.use((req, res, next) => {
+//     // After successful login, redirect back to the intended page
+//     if (!req.user &&
+//         req.path !== "/login" &&
+//         req.path !== "/signup" &&
+//         !req.path.match(/^\/auth/) &&
+//         !req.path.match(/\./)) {
+//         (req.session as any).returnTo = req.path;
+//     } else if (req.user &&
+//         req.path == "/account") {
+//         (req.session as any).returnTo = req.path;
+//     }
+//     next();
+// });
 
-app.use(
-    express.static(path.join(__dirname, "public"), { maxAge: 31557600000 })
-);
+// app.use(
+//     express.static(path.join(__dirname, "public"), { maxAge: 31557600000 })
+// );
 
+console.log("\n\n\n API is called : ");
 
-app.post("/api/v1/forgotPassword", userController.postForgot);
-
-app.post("/api/v1/signup", userController.postSignup);
 /**
  * API Routes
  */
@@ -105,6 +95,7 @@ app.delete("/api/v1/apps/:id", storedAppController.deleteApp);
 
 // store app
 app.get("/api/v1/userApps", userAppController.getAllUserApps);
+app.get("/api/v1/users/:appId", userAppController.getUserByAppId);
 app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
 app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
 app.post("/api/v1/userApps", userAppController.addApp);
@@ -114,12 +105,8 @@ app.delete("/api/v1/userApps/:appId", userAppController.deleteApp);
 
 app.post("/api/v1/login", userController.postLogin);
 
-/** Admin api routes */
-app.get("/api/v1/assets/admin/getAdmin", function (req, res) {
-    res.json({
-        assetId: req.params.id,
-        route: req.path
-    });
-});
+app.post("/api/v1/forgotPassword", userController.postForgot);
+
+app.post("/api/v1/signup", userController.postSignup);
 
 export default app;
