@@ -100,6 +100,7 @@ app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
 app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
 app.post("/api/v1/userApps", userAppController.addApp);
 app.post("/api/v1/userApps/:userAppId/addUser", userAppController.addUserToApp);
+app.post("/api/v1/userApps/:userAppId/updateUser", userAppController.updateUserToApp);
 app.put("/api/v1/userApps/:id", userAppController.updateApp);
 app.delete("/api/v1/userApps/:appId", userAppController.deleteApp);
 

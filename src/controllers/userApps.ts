@@ -251,6 +251,35 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+/**
+ * Adds the user to the Users Array of the App
+ * @route GET /userApps/:userAppId/addUser
+ */
+export const updateUserToApp = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await param("userAppId", "Invalid or missing id").exists().isMongoId().run(req);
+    UserApp.findById(req.params.userAppId, (err: any, userApp: UserAppDocument) => {
+      if (err) {
+        return next(err);
+      }
+      userApp.users = req.body;
+      userApp.save((err: any) => {
+        if (err) {
+          return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+            msg: "Validation failed",
+            error: err
+          });
+        }
+      });
+    });
+  } catch (err) {
+    return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+      msg: "Validation failed",
+      error: err
+    });
+  }
+};
+
 
 /**
  * Gets all the apps that user is assigned to
