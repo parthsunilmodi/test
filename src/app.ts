@@ -40,7 +40,6 @@ mongoose.connect(mongoUrl, {useNewUrlParser: true, useCreateIndex: true, useUnif
 
 // Express configuration
 app.set("port", process.env.PORT || 3000);
-app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(session({
@@ -53,31 +52,6 @@ app.use(session({
     })
 }));
 app.use(passport.initialize());
-app.use(passport.session());
-// app.use((req, res, next) => {
-//     res.locals.user = req.user;
-//     next();
-// });
-// app.use((req, res, next) => {
-//     // After successful login, redirect back to the intended page
-//     if (!req.user &&
-//         req.path !== "/login" &&
-//         req.path !== "/signup" &&
-//         !req.path.match(/^\/auth/) &&
-//         !req.path.match(/\./)) {
-//         (req.session as any).returnTo = req.path;
-//     } else if (req.user &&
-//         req.path == "/account") {
-//         (req.session as any).returnTo = req.path;
-//     }
-//     next();
-// });
-
-// app.use(
-//     express.static(path.join(__dirname, "public"), { maxAge: 31557600000 })
-// );
-
-console.log("\n\n\n API is called : ");
 
 /**
  * API Routes
