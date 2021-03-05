@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import compression from "compression";  // compresses requests
 import session from "express-session";
@@ -7,7 +7,11 @@ import mongo from "connect-mongo";
 import mongoose from "mongoose";
 import passport from "passport";
 import bluebird from "bluebird";
+import httpStatus from "http-status";
+import { ValidationError } from "express-validation";
 import { MONGODB_URI, SESSION_SECRET } from "./util/secrets";
+import APIError from "./helpers/APIError";
+import Routes from "./routes";
 
 const MongoStore = mongo(session);
 
@@ -40,6 +44,7 @@ mongoose.connect(mongoUrl, {useNewUrlParser: true, useCreateIndex: true, useUnif
 
 // Express configuration
 app.set("port", process.env.PORT || 3000);
+app.use(compression());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(session({
@@ -56,32 +61,63 @@ app.use(passport.initialize());
 /**
  * API Routes
  */
-// user routes
-app.get("/api/v1/user/:id", userController.getUserById);
-app.put("/api/v1/set-password/:id", userController.setUserPassword);
 
-// app routes
-app.get("/api/v1/apps", storedAppController.getAllStoredApps);
-app.get("/api/v1/apps/:id", storedAppController.getAppByID);
-app.post("/api/v1/apps", storedAppController.addApp);
-app.put("/api/v1/apps/:id", storedAppController.updateApp);
-app.delete("/api/v1/apps/:id", storedAppController.deleteApp);
+// mount all routes on /api path
+app.use("/api/v1", Routes);
 
-// store app
-app.get("/api/v1/userApps", userAppController.getAllUserApps);
-app.get("/api/v1/users/:appId", userAppController.getUserByAppId);
-app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
-app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
-app.post("/api/v1/userApps", userAppController.addApp);
-app.post("/api/v1/userApps/:userAppId/addUser", userAppController.addUserToApp);
-app.post("/api/v1/userApps/:userAppId/updateUser", userAppController.updateUserToApp);
-app.put("/api/v1/userApps/:id", userAppController.updateApp);
-app.delete("/api/v1/userApps/:appId", userAppController.deleteApp);
+// if error is not an instanceOf APIError, convert it.
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err instanceof ValidationError) {
+        // validation error contains details object which has error message attached to error property.
+        // @ts-ignore
+        const allErrors = (err.details || []).map((pathErrors: any) => Object.values(pathErrors).join(", "));
+        console.log("\n\n allErrors : ", allErrors);
+        const unifiedErrorMessage = allErrors.join(", ").replace(/, ([^,]*)$/, " and $1");
+        console.log("\n\n unifiedErrorMessage : ", unifiedErrorMessage);
+        const error = new APIError(unifiedErrorMessage, err.statusCode);
+        console.log("\n\n Error : ", error);
+        return next(error);
+    }
+    if (!(err instanceof APIError)) {
+        const apiError = new APIError(err.message, err.status);
+        return next(apiError);
+    }
+    return next(err);
+});
 
-app.post("/api/v1/login", userController.postLogin);
+// catch 404 and forward to error handler
+app.use((req, res, next) => {
+    const err = new APIError("API Not Found", httpStatus.NOT_FOUND);
+    return next(err);
+});
 
-app.post("/api/v1/forgotPassword", userController.postForgot);
+// error handler, send stacktrace only during development
+app.use((err: any, req: Request, res: Response, next: NextFunction) => // eslint-disable-line no-unused-vars
+  res.status(err.status).json({ // eslint-disable-line implicit-arrow-linebreak
+      message: err.isPublic ? err.message : httpStatus[err.status],
+      stack: err.stack,
+      ...(err.data || {}),
+  }));
 
-app.post("/api/v1/signup", userController.postSignup);
+// // user routes
+// app.put("/api/v1/set-password/:id", userController.setUserPassword);
+//
+// // app routes
+// app.get("/api/v1/apps", storedAppController.getAllStoredApps);
+// app.get("/api/v1/apps/:id", storedAppController.getAppByID);
+// app.post("/api/v1/apps", storedAppController.addApp);
+// app.put("/api/v1/apps/:id", storedAppController.updateApp);
+// app.delete("/api/v1/apps/:id", storedAppController.deleteApp);
+//
+// // store app
+// app.get("/api/v1/userApps", userAppController.getAllUserApps);
+// app.get("/api/v1/users/:appId", userAppController.getUserByAppId);
+// app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
+// app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
+// app.post("/api/v1/userApps", userAppController.addApp);
+// app.post("/api/v1/userApps/:userAppId/addUser", userAppController.addUserToApp);
+// app.post("/api/v1/userApps/:userAppId/updateUser", userAppController.updateUserToApp);
+// app.put("/api/v1/userApps/:id", userAppController.updateApp);
+// app.delete("/api/v1/userApps/:appId", userAppController.deleteApp);
 
 export default app;

@@ -8,7 +8,6 @@ export type UserDocument = mongoose.Document & {
     passwordResetToken: string;
     passwordResetExpires: Date;
 
-    facebook: string;
     tokens: AuthToken[];
 
     profile: {
@@ -18,9 +17,9 @@ export type UserDocument = mongoose.Document & {
         website: string;
         picture: string;
     };
+    userType: string;
     isVerified: boolean;
-    comparePassword: comparePasswordFunction;
-    gravatar: (size: number) => string;
+    forgotPasswordToken: string;
 };
 
 type comparePasswordFunction = (candidatePassword: string, cb: (err: any, isMatch: any) => {}) => void;
@@ -43,8 +42,9 @@ const userSchema = new mongoose.Schema({
         website: String,
         picture: String
     },
-    userType: { type: String, },
+    userType: { type: String },
     isVerified: { type: Boolean, required: false, default: true },
+    forgotPasswordToken: { type: String, required: false, default: null },
 }, { timestamps: true });
 
 /**

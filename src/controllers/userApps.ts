@@ -1,12 +1,9 @@
-import sgMail from "@sendgrid/mail";
 import { NextFunction, Request, Response } from "express";
 import { param, validationResult } from "express-validator";
 import * as httpStatusCodes from "http-status";
 import { UserApp, UserAppDocument } from "../models/UserApps";
 import { User, UserDocument } from "../models/User";
-
-sgMail.setApiKey(process.env.SENDGRID_PASSWORD);
-
+import sendEmail from "../helpers/emailSender";
 /**
  * Get all the Apps.
  * @route GET /
@@ -209,7 +206,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
           }
           user.save().then((newUser) => {
             userApp.users.push({ userId: newUser.id });
-            userApp.save((err: any) => {
+            userApp.save(async (err: any) => {
               if (err) {
                 return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
                   msg: "Validation failed",
@@ -223,19 +220,8 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
                 text: "You have been given the access for the App. Please visit the below URL and access the app.",
                 html: `<h1><a href=${process.env.FRONTEND_APP_PORTAL_URL}` + req.params.userAppId + "/" + newUser.id + "/pick-list>Go to the App</a></h1>",
               };
-              (async () => {
-                try {
-                  await sgMail.send(mailOptions);
-                  return res.json({ status: true, result: "data updated" });
-                } catch (error) {
-                  console.error(error);
-                  if (error.response) {
-                    console.error(error.response.body);
-                    return res.send(error.response.body);
-                  }
-                  return res.send(err.message);
-                }
-              })();
+              const mailResponse = await sendEmail(mailOptions);
+              return res.json({ status: mailResponse.status, message: mailResponse.message, result: "data updated" });
             });
           }).catch((err) => res.status(500).send({ message: err.message, status: false }));
         }).catch((err) => {

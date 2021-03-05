@@ -1,31 +1,15 @@
 import mongoose, { NativeError } from "mongoose";
-import async from "async";
 import { Request, Response, NextFunction } from "express";
 import { IVerifyOptions } from "passport-local";
-import { check, param, sanitize, validationResult } from "express-validator";
 import * as httpStatusCodes from "http-status";
 import bcrypt from "bcrypt";
-import crypto from "crypto";
-import nodemailer from "nodemailer";
 import passport from "passport";
 import * as jwt from "jsonwebtoken";
+import { v4 as uuid } from "uuid";
 import * as secrets from "../util/secrets";
-import { User, UserDocument, AuthToken } from "../models/User";
+import { User, UserDocument } from "../models/User";
 import "../config/passport";
-import has = Reflect.has;
-
-/**
- * Login page.
- * @route GET /login
- */
-export const getLogin = (req: Request, res: Response) => {
-    if (req.user) {
-        return res.redirect("/");
-    }
-    res.render("account/login", {
-        title: "Login"
-    });
-};
+import sendEmail from "../helpers/emailSender";
 
 /**
  * Sign in using email and password.
@@ -33,18 +17,6 @@ export const getLogin = (req: Request, res: Response) => {
  */
 export const postLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await check("email", "Email is not valid").isEmail().run(req);
-        await check("password", "Password cannot be blank").isLength({ min: 1 }).run(req);
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        await sanitize("email").normalizeEmail({ gmail_remove_dots: false }).run(req);
-
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(httpStatusCodes.BAD_REQUEST).json({
-                message: "Login Error!",
-                error: errors.array()
-            });
-        }
         passport.authenticate("local", (err: Error, user: UserDocument, info: IVerifyOptions) => {
             if (err) {
                 return next(err);
@@ -71,51 +43,6 @@ export const postLogin = async (req: Request, res: Response, next: NextFunction)
 };
 
 /**
- * Sign in to the api using email and password.
- * @route POST /login
- */
-export const postLoginApi = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        await check("email", "Email is not valid").isEmail().run(req);
-        await check("password", "Password cannot be blank").isLength({ min: 1 }).run(req);
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        await sanitize("email").normalizeEmail({ gmail_remove_dots: false }).run(req);
-
-        const errors = validationResult(req);
-
-        if (!errors.isEmpty()) {
-            return res.status(httpStatusCodes.BAD_REQUEST).json({
-                message: "Login Error!",
-                user: errors.array()
-            });
-        }
-
-        passport.authenticate("jwt", (err: Error, user: UserDocument, info: IVerifyOptions) => {
-            if (err) {
-                return next(err);
-            }
-            if (!user) {
-                return res.status(httpStatusCodes.NOT_FOUND).json({ info });
-            }
-            req.logIn(user, (err) => {
-                if (err) {
-                    return next(err);
-                }
-                const body = { _id: user._id, email: user.email };
-                const token = jwt.sign({ user: body }, secrets.JWT_SECRET, { expiresIn: "300m" });
-
-                return res.json({ token });
-
-            });
-        })(req, res, next);
-    } catch (e) {
-        return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
-            error: e.toString()
-        });
-    }
-};
-
-/**
  * Log out.
  * @route GET /logout
  */
@@ -125,39 +52,11 @@ export const logout = (req: Request, res: Response) => {
 };
 
 /**
- * Signup page.
- * @route GET /signup
- */
-export const getSignup = (req: Request, res: Response) => {
-    if (req.user) {
-        return res.redirect("/");
-    }
-    res.render("account/signup", {
-        title: "Create Account"
-    });
-};
-
-/**
  * Create a new local account.
  * @route POST /signup
  */
 export const postSignup = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        await check("email", "Email is not valid").isEmail().run(req);
-        await check("password", "Password must be at least 4 characters long").isLength({ min: 4 }).run(req);
-        await check("confirmPassword", "Passwords do not match").equals(req.body.password).run(req);
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        await sanitize("email").normalizeEmail({ gmail_remove_dots: false }).run(req);
-
-        const errors = validationResult(req);
-
-        if (!errors.isEmpty()) {
-            return res.status(httpStatusCodes.BAD_REQUEST).json({
-                message: "Signup Error!",
-                user: errors.array()
-            });
-        }
-
         const user = new User({
             email: req.body.email,
             password: req.body.password
@@ -194,72 +93,48 @@ export const postSignup = async (req: Request, res: Response, next: NextFunction
 };
 
 /**
- * Profile page.
- * @route GET /account
- */
-export const getAccount = (req: Request, res: Response) => {
-    res.render("account/profile", {
-        title: "Account Management"
-    });
-};
-
-/**
  * Create a random token, then the send user an email with a reset link.
  * @route POST /forgot
  */
-export const postForgot = async (req: Request, res: Response, next: NextFunction) => {
-    await check("email", "Please enter a valid email address.").isEmail().run(req);
-    // eslint-disable-next-line @typescript-eslint/camelcase
-    await sanitize("email").normalizeEmail({ gmail_remove_dots: false }).run(req);
-
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-        return res.status(httpStatusCodes.BAD_REQUEST).json({
-            message: "Forgot password Error!",
-            user: errors.array()
-        });
-    }
-
-    async.waterfall([
-        function createRandomToken(done: Function) {
-            crypto.randomBytes(16, (err: NativeError, buf) => {
-                const token = buf.toString("hex");
-                done(err, token);
-            });
-        },
-        function setRandomToken(token: AuthToken, done: Function) {
-            User.findOne({ email: req.body.email }, (err: NativeError, user: any) => {
-                if (err) {
-                    return done(err);
-                }
-                if (!user) {
-                    return res.status(httpStatusCodes.BAD_REQUEST).json({
-                        message: "Account with that email address does not exist.",
-                        error: "Forgot Password Error"
-                    });
-                }
-                user.passwordResetToken = token;
-                user.passwordResetExpires = Date.now() + 3600000; // 1 hour
-                user.save((err: NativeError,) => {
-                    done(err, `http://${ req.headers.host }/reset/${ token }`, user);
+export const postForgot = async (req: Request, res: Response) => {
+    try {
+        User.findOne({ email: req.body.email }, async (err: NativeError, user: UserDocument) => {
+            if (err) {
+                return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+                    message: err.message
                 });
-            });
-        },
-    ], (err) => {
-        if (err) {
-            return next(err);
-        }
-        res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).send({message: err.toString()});
-    });
+            }
+            if (!user) {
+                return res.status(httpStatusCodes.BAD_REQUEST).json({
+                    message: "Account with that email address does not exist.",
+                    error: "Forgot Password Error"
+                });
+            }
+            const authToken: string = uuid();
+            user.forgotPasswordToken = authToken;
+            await user.save();
+            const str = `${process.env.FRONTEND_ADMIN_PANEL_URL}/set-new-password?authToken=${authToken}&email=${user.email}`;
+            const mailOptions = {
+                to: req.body.email,
+                from: "trackiTT@gmail.com", // TODO: Update it with the default From Email
+                subject: "Recover the password for TrackiTT",
+                text: "We have send you the link to update the password. Please visit the link and update the password",
+                html: `<h1><a href=${str}>Link to reset password</a></h1>`,
+            };
+            const mailResponse = await sendEmail(mailOptions);
+            res.status(httpStatusCodes.OK).json({ status: mailResponse.status, message: mailResponse.message, result: "data updated" });
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json(err);
+    }
 };
 
 /**
  * Get user details from the given Id.
  * @route GET /user
  */
-export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
-    await param("id", "Invalid or missing id").exists().isMongoId().run(req);
+export const getUserById = async (req: Request, res: Response) => {
     User.findOne({ _id: req.params.id }).then((userData) => {
         if (!userData) {
             res.status(400).send({ message: "No data found with the given Id", status: true });
@@ -276,7 +151,6 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
  * @route POST /set-password/:id
  */
 export const setUserPassword = async (req: Request, res: Response, next: NextFunction) => {
-    await param("id", "Invalid or missing id").exists().isMongoId().run(req);
     bcrypt.genSalt(10, (err, salt) => {
         if (err) { return next(err); }
         bcrypt.hash(req.body.password, salt, (err: mongoose.Error, hash) => {
@@ -288,6 +162,40 @@ export const setUserPassword = async (req: Request, res: Response, next: NextFun
                     res.status(400).send({ message: "No data found with the given Id", status: true });
                 }
                 res.send({ message: "Data updated successfully", status: true, data: userData });
+            }).catch((err) => {
+                console.error(err);
+                res.status(500).send({ status: false, message: err.message });
+            });
+        });
+    });
+};
+
+/**
+ * Set the password for the first time.
+ * @route POST /set-password/:id
+ */
+export const resetUserPassword = async (req: Request, res: Response, next: NextFunction) => {
+    bcrypt.genSalt(10, (err, salt) => {
+        if (err) { return next(err); }
+        bcrypt.hash(req.body.password, salt, (err: mongoose.Error, hash) => {
+            if (err) {
+                return res.status(500).send({ status: false, message: err.message });
+            }
+            User
+              .findOneAndUpdate(
+                {
+                    email: req.body.email,
+                    forgotPasswordToken: req.body.authToken
+                },
+                {
+                    password: hash,
+                    forgotPasswordToken: null
+                }
+              ).then((userData) => {
+                if (!userData) {
+                    res.status(httpStatusCodes.NOT_FOUND).send({ message: "No data found with the given Id and authToken", status: false });
+                }
+                res.send({ message: "Data updated successfully", status: true });
             }).catch((err) => {
                 console.error(err);
                 res.status(500).send({ status: false, message: err.message });
