@@ -99,25 +99,4 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => // eslint
       ...(err.data || {}),
   }));
 
-// // user routes
-// app.put("/api/v1/set-password/:id", userController.setUserPassword);
-//
-// // app routes
-// app.get("/api/v1/apps", storedAppController.getAllStoredApps);
-// app.get("/api/v1/apps/:id", storedAppController.getAppByID);
-// app.post("/api/v1/apps", storedAppController.addApp);
-// app.put("/api/v1/apps/:id", storedAppController.updateApp);
-// app.delete("/api/v1/apps/:id", storedAppController.deleteApp);
-//
-// // store app
-// app.get("/api/v1/userApps", userAppController.getAllUserApps);
-// app.get("/api/v1/users/:appId", userAppController.getUserByAppId);
-// app.get("/api/v1/user/userApps/:appId", userAppController.getUserAppByID);
-// app.get("/api/v1/userApps/:userId", userAppController.getUserAssignedApps);
-// app.post("/api/v1/userApps", userAppController.addApp);
-// app.post("/api/v1/userApps/:userAppId/addUser", userAppController.addUserToApp);
-// app.post("/api/v1/userApps/:userAppId/updateUser", userAppController.updateUserToApp);
-// app.put("/api/v1/userApps/:id", userAppController.updateApp);
-// app.delete("/api/v1/userApps/:appId", userAppController.deleteApp);
-
 export default app;

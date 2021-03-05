@@ -8,7 +8,7 @@ import sendEmail from "../helpers/emailSender";
  * Get all the Apps.
  * @route GET /
  */
-export const getAllUserApps = (req: Request, res: Response, next: NextFunction) => {
+export const getAllApps = (req: Request, res: Response, next: NextFunction) => {
   UserApp.find({})
     .populate("userId")
     .populate("appId")
@@ -26,7 +26,7 @@ export const getAllUserApps = (req: Request, res: Response, next: NextFunction) 
  * Get StoreApp by ID.
  * @route GET /
  */
-export const getUserAppByID = async (req: Request, res: Response, next: NextFunction) => {
+export const getAppByID = async (req: Request, res: Response, next: NextFunction) => {
   await param("id", "Invalid or missing id").exists().isMongoId().run(req);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -175,14 +175,7 @@ export const deleteApp = async (req: Request, res: Response, next: NextFunction)
  */
 export const addUserToApp = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
-    await param("userAppId", "Invalid or missing id").exists().isMongoId().run(req);
-
     UserApp.findById(req.params.userAppId, (err: any, userApp: UserAppDocument) => {
-      if (err) {
-        return next(err);
-      }
-
       const isExists = userApp.users.find((user) => {
         // @ts-ignore
         return user.userId.equals(req.body.userEmail);
@@ -271,7 +264,7 @@ export const updateUserToApp = async (req: Request, res: Response, next: NextFun
  * Gets all the apps that user is assigned to
  * @route GET /userApps/:userId
  */
-export const getUserAssignedApps = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserAssignedAppsByUserId = async (req: Request, res: Response, next: NextFunction) => {
   try {
 
     await param("userId", "Invalid or missing id").exists().isMongoId().run(req);
@@ -295,11 +288,7 @@ export const getUserAssignedApps = async (req: Request, res: Response, next: Nex
  */
 export const getUserByAppId = async (req: Request, res: Response, next: NextFunction) => {
   try {
-
-    await param("appId", "Invalid or missing id").exists().isMongoId().run(req);
-
     UserApp.find({ "_id": req.params.appId }).populate("users.userId").then((userApps) => {
-      debugger;
       res.send({ status: true, message: "Data fetched successfully", data: userApps });
     }).catch((err) => {
       return res.status(500).send({ status: false, message: err.message });

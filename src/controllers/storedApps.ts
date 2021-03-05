@@ -51,11 +51,6 @@ export const getAppByID = async (req: Request, res: Response, next: NextFunction
  */
 export const addApp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    const body = {
-      ...req.body,
-      expiresIn: "",
-      userType: "",
-    };
     const app: any = new StoredApp(req.body);
 
     await app.save((err: any, result: any) => {
@@ -81,9 +76,6 @@ export const addApp = async (req: Request, res: Response, next: NextFunction): P
  */
 export const updateApp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    await param("id", "Invalid or missing id").exists().isMongoId().run(req);
-    const app: any = new StoredApp(req.body);
-
     let newApp = req.body as StoredAppDocument;
     StoredApp.findById(req.params.id, (err: any, app: StoredAppDocument) => {
       if (err) {
@@ -113,23 +105,11 @@ export const updateApp = async (req: Request, res: Response, next: NextFunction)
  * @route DELETE /
  */
 export const deleteApp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-  await param("id", "Invalid or missing id").exists().isMongoId().run(req);
   const app = req.body as StoredAppDocument;
   StoredApp.remove({_id: app.id}, (err) => {
     if (err) {
       return next(err);
     }
     return res.json({result: "app deleted"});
-  });
-};
-
-/**
- * Admin Dashboard page.
- * @route GET /
- */
-export const adminDashboard = (req: Request, res: Response) => {
-  // TBD: change to admin dashboard page
-  res.render("home", {
-    title: "Dashboard"
   });
 };

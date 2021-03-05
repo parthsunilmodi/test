@@ -26,9 +26,9 @@ const appSchema = new mongoose.Schema({
     requirements: {
         type: [Object],
     },
-    useCase: {type: [Object],},
-    cost: {type: [Object],},
-    review: {type: [Object],},
+    useCase: { type: [Object] },
+    cost: { type: [Object] },
+    review: { type: [Object] },
     publishedUrls: { type: String }, // https://eduro.apps.trackitt.io/${appName}
     thumbnailUrl: { type: String }, // image to display in list view
     pictures: { type: [String] }, // set of images to display in detail view
