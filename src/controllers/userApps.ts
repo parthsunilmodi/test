@@ -175,7 +175,7 @@ export const deleteApp = async (req: Request, res: Response, next: NextFunction)
  */
 export const addUserToApp = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    UserApp.findById(req.params.userAppId, (err: any, userApp: UserAppDocument) => {
+    UserApp.findById(req.params.appId, (err: any, userApp: UserAppDocument) => {
       const isExists = userApp.users.find((user) => {
         // @ts-ignore
         return user.userId.equals(req.body.userEmail);
@@ -190,7 +190,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
           password: randomPassword,
           isVerified: false,
           profile: {
-            name: "AppUser",
+            name: req.body.name,
           }
         });
         User.findOne({ emailId: req.body.userEmail }).then((userResponse) => {
@@ -236,20 +236,13 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
  */
 export const updateUserToApp = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await param("userAppId", "Invalid or missing id").exists().isMongoId().run(req);
-    UserApp.findById(req.params.userAppId, (err: any, userApp: UserAppDocument) => {
+    // @ts-ignore
+    UserApp.update({ _id: req.params.appId }, { $pull: { "users": { "userId": req.body.id } } }, (err: any, userApp: UserAppDocument) => {
       if (err) {
         return next(err);
       }
-      userApp.users = req.body;
-      userApp.save((err: any) => {
-        if (err) {
-          return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
-            msg: "Validation failed",
-            error: err
-          });
-        }
-      });
+      console.log("\n\n\n userApp : ", userApp);
+      res.json({ status: true, message: "record removed successfully" });
     });
   } catch (err) {
     return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({

@@ -38,13 +38,22 @@ const paramValidation = {
     })
   },
   addUserToApp: {
+    params: Joi.object({
+      appId: Joi.string().required(),
+    }),
     body: Joi.object({
-
-    })
+      adminEmail: Joi.string().email().required(),
+      userEmail: Joi.string().email().required(),
+      name: Joi.string().required(),
+    }),
   },
   updateUserToApp: {
+    params: Joi.object({
+      appId: Joi.string().required(),
+    }),
     body: Joi.object({
-
+      id: Joi.string().required(),
+      email: Joi.string().email().required(),
     })
   }
 };
@@ -89,14 +98,14 @@ UserAppsRoute.delete("/:appId", validate(paramValidation.deleteApp), userAppsCon
  * @route POST /add-user/:appId
  * returns the result with { status, message, result }
  */
-UserAppsRoute.post("/add-user/:appId", validate(paramValidation.addUserToApp), userAppsController.addUserToApp);
+UserAppsRoute.post("/user/:appId", validate(paramValidation.addUserToApp), userAppsController.addUserToApp);
 
 /**
  * Update User array to the App
  * @route PUT /update-user/:appId
  * returns the result with { status, message, result }
  */
-UserAppsRoute.put("/update-user/:appId", validate(paramValidation.updateUserToApp), userAppsController.updateUserToApp);
+UserAppsRoute.put("/users/:appId", validate(paramValidation.updateUserToApp), userAppsController.updateUserToApp);
 
 /**
  * Get the array of userApps that have the given Id in the users array
