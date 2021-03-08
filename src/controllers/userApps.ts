@@ -182,7 +182,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
       });
 
       if (isExists) {
-        return res.status(400).send({ status: false, result: "User already added to this App" });
+        return res.status(400).send({ status: false, message: "User already added to this App" });
       } else {
         const randomPassword = Math.random().toString(36).slice(-8);
         const user = new User({
@@ -214,7 +214,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
                 html: `<h1><a href=${process.env.FRONTEND_APP_PORTAL_URL}` + req.params.userAppId + "/" + newUser.id + "/pick-list>Go to the App</a></h1>",
               };
               const mailResponse = await sendEmail(mailOptions);
-              return res.json({ status: mailResponse.status, message: mailResponse.message, result: "data updated" });
+              return res.json({ status: mailResponse.status, message: mailResponse.message, result: "data updated", user: userApp });
             });
           }).catch((err) => res.status(500).send({ message: err.message, status: false }));
         }).catch((err) => {
