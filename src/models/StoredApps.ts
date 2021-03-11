@@ -14,6 +14,7 @@ export type StoredAppDocument = mongoose.Document & {
     publishedUrls: string;
     thumbnailUrl: string;
     pictures: [string];
+    publicRoute: string; // it have the route to the page in the trackiTT skeleton repo
 };
 
 const appSchema = new mongoose.Schema({
@@ -32,6 +33,7 @@ const appSchema = new mongoose.Schema({
     publishedUrls: { type: String }, // https://eduro.apps.trackitt.io/${appName}
     thumbnailUrl: { type: String }, // image to display in list view
     pictures: { type: [String] }, // set of images to display in detail view
+    publicRoute: { type: String },
 
 }, {strict: true, timestamps: true});
 

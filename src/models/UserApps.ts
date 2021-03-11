@@ -7,13 +7,13 @@ export type UserAppDocument = mongoose.Document & {
     userType: string;
     subscriptionType: "FREE" | "PAID";
     expiresIn: Date;
-    appUrl: string;
+    appUrl: string; // https://eduro.apps.trackitt.io/
     users: [object];
     dashboard: string;
     cost: string;
     integrations: string;
     appData: string;
-    apiRoot: string; // url where we'll store our data
+    apiRoot: string; // url where we'll store our data ( https://3njqmevkjf.execute-api.us-east-1.amazonaws.com/prod/picklists )
     apiKey: string; // will store the url where our actual app is hosted
 };
 
@@ -25,7 +25,7 @@ const userAppSchema = new mongoose.Schema({
     expiresIn: { type: Date, required: true, default: moment().add(14, "days").toISOString() },
     users: [
       {
-          userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true },
+          userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
           type: { type: String, enum: ["Admin", "User"], required: true, default: "User" },
           registeredOn: { type: Date, required: true, default: moment().add(14, "days").toISOString() }
       }

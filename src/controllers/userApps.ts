@@ -86,6 +86,7 @@ export const addApp = async (req: Request, res: Response, next: NextFunction): P
       ...req.body,
       // userId: (req.user as UserDocument).id,
       expiresIn: Date.now() + (14 * 24 * 60 * 60 * 1000), // day * hour * minute * second * 1000 // 14 days
+      apiRoot: "https://3njqmevkjf.execute-api.us-east-1.amazonaws.com/prod/picklists", // TODO: make it dynamic
     };
     UserApp.find({userId: data.userId, appId: data.appId}, async (err: any, result: any) => {
       if (err) {
@@ -180,7 +181,8 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
     if (isExists) {
       return res.status(400).send({ status: false, result: "User already added to this App" });
     } else {
-      let selectedUser = await User.findOne({ emailId: req.body.userEmail });
+      let selectedUser = await User.findOne({ email: req.body.userEmail });
+      console.log("selectedUser : ", selectedUser);
       if (!selectedUser) {
         const randomPassword = Math.random().toString(36).slice(-8);
         const user = new User({
@@ -192,29 +194,29 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
           }
         });
         selectedUser = await user.save();
+        console.log("new selected user : ", selectedUser);
       }
       const oldUsers = userApp.users;
+      console.log("-------------------------------------------------------");
+      console.log(oldUsers);
+      console.log("user app with new old user : ", userApp);
       userApp.users.push({ userId: selectedUser.id });
-      userApp.save(async (err: any) => {
-        if (err) {
-          return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
-            msg: "Validation failed",
-            error: err
-          });
-        }
-        const str = `${process.env.FRONTEND_APP_PORTAL_URL}/${req.params.appId}/${selectedUser.id}/pick-list`;
-        const mailOptions = {
-          to: req.body.userEmail,
-          from: req.body.adminEmail,
-          subject: "User access for the App",
-          text: "You have been given the access for the App. Please visit the below URL and access the app.",
-          html: `<h1><a href=${str}>Go to the App</a></h1>`,
-        };
-        await sendEmail(mailOptions);
-        return res.json({ status: 200, message: "mailResponse.message", result: "data updated", user: [ ...oldUsers, selectedUser ] });
-      });
+      console.log("user app with new user : ", userApp.users);
+      const newData = await userApp.save();
+      console.log("newData : ", newData);
+      const str = `${process.env.FRONTEND_APP_PORTAL_URL}/${req.params.appId}/${selectedUser.id}/pick-list`;
+      const mailOptions = {
+        to: req.body.userEmail,
+        from: req.body.adminEmail,
+        subject: "User access for the App",
+        text: "You have been given the access for the App. Please visit the below URL and access the app.",
+        html: `<h1><a href=${str}>Go to the App</a></h1>`,
+      };
+      await sendEmail(mailOptions);
+      return res.json({ status: 200, message: "mailResponse.message", result: "data updated", user: [ ...oldUsers, selectedUser ] });
     }
   } catch (err) {
+    console.log("error : ", err);
     return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
       msg: "Validation failed",
       error: err
