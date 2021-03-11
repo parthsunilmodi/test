@@ -24,6 +24,7 @@ const paramValidation = {
   addApp: {
     body: Joi.object({
       appId: Joi.string().required(),
+      userId: Joi.string().optional(),
       subscriptionType: Joi.string().valid("FREE", "PAID")
     })
   },
