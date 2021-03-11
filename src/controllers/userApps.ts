@@ -172,15 +172,16 @@ export const deleteApp = async (req: Request, res: Response, next: NextFunction)
  */
 export const addUserToApp = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    UserApp.findById(req.params.appId, (err: any, userApp: UserAppDocument) => {
-      const isExists = userApp.users.find((user) => {
-        // @ts-ignore
-        return user.userId.equals(req.body.userEmail);
-      });
-
-      if (isExists) {
-        return res.status(400).send({ status: false, message: "User already added to this App" });
-      } else {
+    const userApp = await UserApp.findById(req.params.appId);
+    const isExists = userApp.users.find((user) => {
+      // @ts-ignore
+      return user.userId.equals(req.body.userEmail);
+    });
+    if (isExists) {
+      return res.status(400).send({ status: false, result: "User already added to this App" });
+    } else {
+      let selectedUser = await User.findOne({ emailId: req.body.userEmail });
+      if (!selectedUser) {
         const randomPassword = Math.random().toString(36).slice(-8);
         const user = new User({
           email: req.body.userEmail,
@@ -190,37 +191,29 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
             name: req.body.name,
           }
         });
-        User.findOne({ emailId: req.body.userEmail }).then((userResponse) => {
-          if (userResponse) {
-            return res.status(400).send({ message: "User with same emailAddress is already registered.", status: false });
-          }
-          user.save().then((newUser) => {
-            const oldUsers = userApp.users;
-            userApp.users.push({ userId: newUser.id });
-            userApp.save(async (err: any) => {
-              if (err) {
-                return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
-                  msg: "Validation failed",
-                  error: err
-                });
-              }
-              const str = `${process.env.FRONTEND_APP_PORTAL_URL}/${req.params.appId}/${newUser.id}/pick-list`;
-              const mailOptions = {
-                to: req.body.userEmail,
-                from: req.body.adminEmail,
-                subject: "User access for the App",
-                text: "You have been given the access for the App. Please visit the below URL and access the app.",
-                html: `<h1><a href=${str}>Go to the App</a></h1>`,
-              };
-              await sendEmail(mailOptions);
-              return res.json({ status: 200, message: "mailResponse.message", result: "data updated", user: [ ...oldUsers, newUser ] });
-            });
-          }).catch((err) => res.status(500).send({ message: err.message, status: false }));
-        }).catch((err) => {
-          res.status(500).send({ message: err, status: false });
-        });
+        selectedUser = await user.save();
       }
-    });
+      const oldUsers = userApp.users;
+      userApp.users.push({ userId: selectedUser.id });
+      userApp.save(async (err: any) => {
+        if (err) {
+          return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+            msg: "Validation failed",
+            error: err
+          });
+        }
+        const str = `${process.env.FRONTEND_APP_PORTAL_URL}/${req.params.appId}/${selectedUser.id}/pick-list`;
+        const mailOptions = {
+          to: req.body.userEmail,
+          from: req.body.adminEmail,
+          subject: "User access for the App",
+          text: "You have been given the access for the App. Please visit the below URL and access the app.",
+          html: `<h1><a href=${str}>Go to the App</a></h1>`,
+        };
+        await sendEmail(mailOptions);
+        return res.json({ status: 200, message: "mailResponse.message", result: "data updated", user: [ ...oldUsers, selectedUser ] });
+      });
+    }
   } catch (err) {
     return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
       msg: "Validation failed",
