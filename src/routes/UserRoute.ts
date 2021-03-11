@@ -11,6 +11,16 @@ const paramValidation = {
       id: Joi.string().required(),
     }),
   },
+  setUserPassword: {
+    params: Joi.object({
+      userId: Joi.string().required(),
+    }),
+    body: Joi.object({
+      password: Joi.string()
+          .regex(/[a-zA-Z0-9]{3,30}/)
+          .required(),
+    })
+  }
 };
 
 /**
@@ -19,5 +29,12 @@ const paramValidation = {
  * returns the details of the user
  */
 UserRoute.get("/:id", validate(paramValidation.getUser), userController.getUserById);
+
+/**
+ * Set password for the user
+ * @route PUT /set-password/:userId
+ * returns the details of the user
+ */
+UserRoute.put("/set-password/:userId", validate(paramValidation.setUserPassword), userController.setUserPassword);
 
 export default UserRoute;
