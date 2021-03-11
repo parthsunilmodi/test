@@ -25,7 +25,7 @@ const userAppSchema = new mongoose.Schema({
     expiresIn: { type: Date, required: true, default: moment().add(14, "days").toISOString() },
     users: [
       {
-          userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true },
           type: { type: String, enum: ["Admin", "User"], required: true, default: "User" },
           registeredOn: { type: Date, required: true, default: moment().add(14, "days").toISOString() }
       }

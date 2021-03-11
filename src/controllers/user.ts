@@ -157,7 +157,7 @@ export const setUserPassword = async (req: Request, res: Response, next: NextFun
             if (err) {
                 return res.status(500).send({ status: false, message: err.message });
             }
-            User.findOneAndUpdate({ _id: req.params.id }, { password: hash, isVerified: true }).then((userData) => {
+            User.findOneAndUpdate({ _id: req.params.userId }, { password: hash, isVerified: true }).then((userData) => {
                 if (!userData) {
                     res.status(400).send({ message: "No data found with the given Id", status: true });
                 }

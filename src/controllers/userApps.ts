@@ -27,7 +27,6 @@ export const getAllApps = (req: Request, res: Response, next: NextFunction) => {
  * @route GET /
  */
 export const getAppByID = async (req: Request, res: Response, next: NextFunction) => {
-  await param("id", "Invalid or missing id").exists().isMongoId().run(req);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(httpStatusCodes.BAD_REQUEST).json({
@@ -128,8 +127,6 @@ export const addApp = async (req: Request, res: Response, next: NextFunction): P
  */
 export const updateApp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
-    await param("id", "Invalid or missing id").exists().isMongoId().run(req);
-
     let newApp = req.body as UserAppDocument;
     UserApp.findById(req.params.id, (err: any, storeApp: UserAppDocument) => {
       if (err) {
@@ -198,6 +195,7 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
             return res.status(400).send({ message: "User with same emailAddress is already registered.", status: false });
           }
           user.save().then((newUser) => {
+            const oldUsers = userApp.users;
             userApp.users.push({ userId: newUser.id });
             userApp.save(async (err: any) => {
               if (err) {
@@ -206,15 +204,16 @@ export const addUserToApp = async (req: Request, res: Response, next: NextFuncti
                   error: err
                 });
               }
+              const str = `${process.env.FRONTEND_APP_PORTAL_URL}/${req.params.appId}/${newUser.id}/pick-list`;
               const mailOptions = {
                 to: req.body.userEmail,
                 from: req.body.adminEmail,
                 subject: "User access for the App",
                 text: "You have been given the access for the App. Please visit the below URL and access the app.",
-                html: `<h1><a href=${process.env.FRONTEND_APP_PORTAL_URL}` + req.params.userAppId + "/" + newUser.id + "/pick-list>Go to the App</a></h1>",
+                html: `<h1><a href=${str}>Go to the App</a></h1>`,
               };
-              const mailResponse = await sendEmail(mailOptions);
-              return res.json({ status: mailResponse.status, message: mailResponse.message, result: "data updated" });
+              await sendEmail(mailOptions);
+              return res.json({ status: 200, message: "mailResponse.message", result: "data updated", user: [ ...oldUsers, newUser ] });
             });
           }).catch((err) => res.status(500).send({ message: err.message, status: false }));
         }).catch((err) => {
