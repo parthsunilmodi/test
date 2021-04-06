@@ -2,6 +2,7 @@ import express from "express";
 import { Joi } from "express-validation";
 import * as userController from "../controllers/user";
 import { validate } from "../helpers";
+import { verifyToken } from "../middleware/verifyUser";
 
 const AuthRoute = express.Router();
 
@@ -46,7 +47,12 @@ const paramValidation = {
         .required(),
       email: Joi.string().email().required(),
     })
-  }
+  },
+  verifyUserWithApp: {
+    params: {
+      appId: Joi.string().required(),
+    },
+  },
 };
 
 /**
@@ -55,6 +61,13 @@ const paramValidation = {
  * returns the token and the user details
  */
 AuthRoute.post("/login", validate(paramValidation.login), userController.postLogin);
+
+/**
+ * Verify the user with token.
+ * @route GET /auth/verifyUser
+ * returns the token and the user details
+ */
+AuthRoute.get("/verifyUserWithApp/:appId", verifyToken, userController.verifyUserWithApp);
 
 /**
  * Forgot password with email.

@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 import moment from "moment";
 
+type User = {
+    type: string;
+    _id: string;
+    userId: string;
+    registeredOn: any;
+}
+
 export type UserAppDocument = mongoose.Document & {
     userId: string;
     appId: string;
@@ -8,7 +15,7 @@ export type UserAppDocument = mongoose.Document & {
     subscriptionType: "FREE" | "PAID";
     expiresIn: Date;
     appUrl: string; // https://eduro.apps.trackitt.io/
-    users: [object];
+    users: [User | object];
     dashboard: string;
     cost: string;
     integrations: string;

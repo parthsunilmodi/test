@@ -8,8 +8,9 @@ import * as jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import * as secrets from "../util/secrets";
 import { User, UserDocument } from "../models/User";
-import "../config/passport";
 import sendEmail from "../helpers/emailSender";
+import { UserApp, UserAppDocument } from "../models/UserApps";
+import "../config/passport";
 
 /**
  * Sign in using email and password.
@@ -38,6 +39,40 @@ export const postLogin = async (req: Request, res: Response, next: NextFunction)
     } catch (e) {
         return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
             error: e.toString()
+        });
+    }
+};
+
+/**
+ * Verify User with token
+ * @route POST /verifyUser
+ */
+export const verifyUserWithApp = async (req: Request, res: Response) => {
+    const { appId } = req.params;
+    const user: any = req.user;
+
+    try {
+        await UserApp.findOne({ appId: appId, "users.userId": user._id }, (err: any, userApp: UserAppDocument) => {
+            if (err) {
+                return res.status(httpStatusCodes.NOT_FOUND).json({
+                    msg: "StoreApp id not found",
+                    error: err,
+                    status: false,
+                });
+            }
+            if (!userApp) {
+                return res.status(httpStatusCodes.NOT_FOUND).json({
+                    msg: "There is no app registered for this Id",
+                    status: false,
+                    access: false
+                });
+            }
+            return res.json({ userApp, status: true, expired: false, access: true, message: "User have the access for the app." });
+        });
+    } catch (e) {
+        return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR).json({
+            status: false,
+            error: e.message,
         });
     }
 };

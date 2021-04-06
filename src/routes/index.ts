@@ -4,7 +4,7 @@ import UserRoute from "./UserRoute";
 import StoredAppsRoute from "./StoredAppsRoute";
 import UserAppsRoute from "./UserAppsRoute";
 
-const router = express.Router();
+const   router = express.Router();
 
 // mount auth routes at /auth
 router.use("/auth", AuthRoute);
