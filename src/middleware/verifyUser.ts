@@ -19,7 +19,11 @@ type Decoded = {
 export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   const { authorization } = req.headers;
   if (!authorization) {
-    throw new APIError("Authorization header is missing", httpStatus.UNAUTHORIZED);
+    return res.status(httpStatusCodes.UNAUTHORIZED).json({
+      error: "Authorization header is missing",
+      message: "Authorization header is missing",
+      status: false,
+    });
   }
   try {
     jwt.verify(authorization, secrets.JWT_SECRET, async (err, decoded: Decoded) => {
@@ -35,7 +39,11 @@ export const verifyToken = async (req: Request, res: Response, next: NextFunctio
 
     });
   } catch (error) {
-    return next(error);
+    return res.status(httpStatusCodes.UNAUTHORIZED).json({
+      error: error.toString(),
+      status: false,
+      expired: true,
+    });
   }
 };
 

@@ -2,6 +2,7 @@ import express from "express";
 import { Joi } from "express-validation";
 import * as userController from "../controllers/user";
 import { validate } from "../helpers";
+import { verifyToken } from "../middleware/verifyUser";
 
 const UserRoute = express.Router();
 
@@ -28,13 +29,13 @@ const paramValidation = {
  * @route GET /user/:id
  * returns the details of the user
  */
-UserRoute.get("/:id", validate(paramValidation.getUser), userController.getUserById);
+UserRoute.get("/:id", verifyToken, validate(paramValidation.getUser), userController.getUserById);
 
 /**
  * Set password for the user
  * @route PUT /set-password/:userId
  * returns the details of the user
  */
-UserRoute.put("/set-password/:userId", validate(paramValidation.setUserPassword), userController.setUserPassword);
+UserRoute.put("/set-password/:userId", verifyToken, validate(paramValidation.setUserPassword), userController.setUserPassword);
 
 export default UserRoute;

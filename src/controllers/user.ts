@@ -12,6 +12,13 @@ import sendEmail from "../helpers/emailSender";
 import { UserApp, UserAppDocument } from "../models/UserApps";
 import "../config/passport";
 
+/*
+* m - minutes (1m)
+* h - hour (1hr)
+* d - day (1d)
+*/
+const tokenExpirationTime = "1hr";
+
 /**
  * Sign in using email and password.
  * @route POST /login
@@ -30,7 +37,7 @@ export const postLogin = async (req: Request, res: Response, next: NextFunction)
                     return next(err);
                 }
                 const body = { _id: user._id, email: user.email };
-                const token = jwt.sign({ user: body }, secrets.JWT_SECRET, { expiresIn: "300m" });
+                const token = jwt.sign({ user: body }, secrets.JWT_SECRET, { expiresIn: tokenExpirationTime });
 
                 return res.json({ ...body, token });
 
