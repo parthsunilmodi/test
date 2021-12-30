@@ -11,17 +11,17 @@ import httpStatus from "http-status";
 import { ValidationError } from "express-validation";
 import { MONGODB_URI, SESSION_SECRET } from "./util/secrets";
 import APIError from "./helpers/APIError";
-import Routes from "./routes";
+import Routes from "./components/routes";
 
 const MongoStore = mongo(session);
 
-// Controllers (route handlers)
-import * as userAppController from "./controllers/userApps";
-import * as storedAppController from "./controllers/storedApps";
-import * as userController from "./controllers/user";
-
 // Create Express server
-const app = express();
+export const app = express();
+
+const http = require("http").Server(app);
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const io = require("socket.io")(http);
+
 app.use(cors());
 
 app.use(function(req, res, next) {
@@ -63,7 +63,16 @@ app.use(passport.initialize());
  */
 
 // mount all routes on /api path
-app.use("/api/v1", Routes);
+app.use("/service", Routes);
+
+app.get("/", (req, res) => {
+    res.send("Okay");
+});
+
+// Socket
+io.on("connection", (socket: any) => {
+    console.log("\n\n New client connected" , socket.id);
+});
 
 // if error is not an instanceOf APIError, convert it.
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -99,4 +108,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => // eslint
       ...(err.data || {}),
   }));
 
-export default app;
+http.listen(app.get("port"), () => {
+    console.log(
+      "  App is running at http://localhost:%d in %s mode",
+      app.get("port"),
+      app.get("env")
+    );
+    console.log("  Press CTRL-C to stop\n");
+});
